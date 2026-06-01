@@ -35,7 +35,8 @@ jobs:
               echo "Uploading: $file"
               wrangler r2 object put eternalreturn-images/"character/${file#character_images/}" \
                 --file "$file" \
-                --content-type "image/webp"
+                --content-type "image/webp" \
+                --remote
             else
               echo "Deleted or not found, skipping: $file"
             fi
