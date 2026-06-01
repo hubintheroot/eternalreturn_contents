@@ -1,0 +1,42 @@
+name: Sync changed images to R2
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'character_images/**'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Get changed files
+        id: changed
+        run: |
+          git diff --name-only HEAD^ HEAD -- 'character_images/**' > changed_files.txt
+          cat changed_files.txt
+
+      - name: Install Wrangler
+        run: npm install -g wrangler
+
+      - name: Upload changed files to R2
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          while IFS= read -r file; do
+            if [ -f "$file" ]; then
+              echo "Uploading: $file"
+              wrangler r2 object put eternalreturn-images/"character/${file#character_images/}" \
+                --file "$file" \
+                --content-type "image/webp"
+            else
+              echo "Deleted or not found, skipping: $file"
+            fi
+          done < changed_files.txt
